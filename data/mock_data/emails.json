@@ -1,0 +1,91 @@
+[
+  {
+    "id": "mock_001",
+    "thread_id": "thread_001",
+    "sender": {
+      "name": "Sarah Mitchell",
+      "email": "sarah.mitchell@techcorp.io"
+    },
+    "recipients": ["you@gmail.com"],
+    "subject": "Exciting SWE Internship Opportunity at TechCorp",
+    "body": "Hi,\n\nI came across your profile on LinkedIn and was impressed by your background in software engineering.\n\nWe have an open Software Engineer Intern position at TechCorp for Summer 2025 and I think you'd be a great fit.\n\nWould you be available for a quick 20-minute call this week or next to discuss the role further? Please let me know your availability.\n\nLooking forward to hearing from you.\n\nBest regards,\nSarah Mitchell\nTechnical Recruiter, TechCorp",
+    "timestamp": "2025-07-20T10:30:00Z",
+    "is_reply": false,
+    "raw_headers": null
+  },
+
+  {
+    "id": "mock_002",
+    "thread_id": "thread_002",
+    "sender": {
+      "name": "Prof. Anand Sharma",
+      "email": "a.sharma@university.edu"
+    },
+    "recipients": ["you@gmail.com"],
+    "subject": "Project Status Update Required",
+    "body": "Dear Student,\n\nI wanted to follow up regarding the NLP project you are working on this semester.\n\nThe mid-semester review is scheduled for next week and I have not yet received your progress report. Could you please send me a brief update on where you currently stand — what has been completed, what is in progress, and any blockers you are facing?\n\nPlease respond by Friday.\n\nRegards,\nProf. Anand Sharma\nDepartment of Computer Science",
+    "timestamp": "2025-07-21T09:15:00Z",
+    "is_reply": false,
+    "raw_headers": null
+  },
+
+  {
+    "id": "mock_003",
+    "thread_id": "thread_003",
+    "sender": {
+      "name": "Rohan Mehta",
+      "email": "rohan.mehta@gmail.com"
+    },
+    "recipients": ["you@gmail.com"],
+    "subject": "Re: Study Group Meeting This Weekend",
+    "body": "Hey,\n\nJust confirming — we're meeting Saturday at 3 PM at the college library, second floor. Karan and Priya are also coming.\n\nCan you make it? Also bring your notes from the OS lecture if you have them.\n\nThanks,\nRohan",
+    "timestamp": "2025-07-21T14:45:00Z",
+    "is_reply": true,
+    "raw_headers": null
+  },
+
+  {
+    "id": "mock_004",
+    "thread_id": "thread_004",
+    "sender": {
+      "name": "IEEE Newsletter",
+      "email": "newsletter@ieee.org"
+    },
+    "recipients": ["you@gmail.com"],
+    "subject": "IEEE Spectrum Weekly: AI breakthroughs and the future of computing",
+    "body": "IEEE SPECTRUM WEEKLY\n\nThis week in technology:\n\n1. New breakthroughs in large language model efficiency\n2. Quantum computing reaches new milestone\n3. Edge computing adoption accelerates in IoT\n4. Call for Papers: IEEE Conference on Machine Learning 2025\n\nClick here to read the full articles on ieee.org.\n\nTo unsubscribe from this newsletter, click here.\n\nIEEE, 3 Park Avenue, New York, NY 10016",
+    "timestamp": "2025-07-22T08:00:00Z",
+    "is_reply": false,
+    "raw_headers": null
+  },
+
+  {
+    "id": "mock_005",
+    "thread_id": "thread_005",
+    "sender": {
+      "name": "Internshala Applications",
+      "email": "no-reply@internshala.com"
+    },
+    "recipients": ["you@gmail.com"],
+    "subject": "Application Received – Data Science Intern at Analytics Hub",
+    "body": "Hi,\n\nThank you for applying to the Data Science Intern position at Analytics Hub through Internshala.\n\nYour application has been successfully submitted.\n\nApplication Details:\n- Company: Analytics Hub Pvt. Ltd.\n- Role: Data Science Intern\n- Application ID: INS-2025-884721\n- Applied On: July 22, 2025\n- Platform: Internshala\n\nThe company will review your application and reach out if your profile matches their requirements.\n\nGood luck!\nTeam Internshala",
+    "timestamp": "2025-07-22T11:20:00Z",
+    "is_reply": false,
+    "raw_headers": null
+  },
+
+  {
+    "id": "mock_006",
+    "thread_id": "thread_006",
+    "sender": {
+      "name": "Neha Joshi",
+      "email": "neha.joshi@startupxyz.com"
+    },
+    "recipients": ["you@gmail.com"],
+    "subject": "Following up",
+    "body": "Hi,\n\nJust wanted to follow up on my previous message.\n\nPlease let us know if you are still interested.\n\nThanks,\nNeha",
+    "timestamp": "2025-07-23T16:00:00Z",
+    "is_reply": false,
+    "raw_headers": null
+  }
+]
