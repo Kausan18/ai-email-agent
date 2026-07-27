@@ -75,18 +75,8 @@ def classify_email(email: CanonicalEmail) -> ClassifiedEmail:
     body         = email.body.lower()
     full_text    = f"{subject} {body}"
 
-    # ---- Step 1: Automated / no-reply sources (EC-1, EC-2) ----
-    if _contains_any(sender_email, NO_REPLY_SENDER_PATTERNS) or _contains_any(full_text, NEWSLETTER_KEYWORDS):
-        logger.info(f"Email {email.id} → NEWSLETTER/PROMOTION (no reply)")
-        return ClassifiedEmail(
-            email=email,
-            category=EmailCategory.NEWSLETTER,
-            reply_required=False,
-            confidence=1.0,
-            reason="Sender pattern or content matches newsletter/automated source."
-        )
-
-    # ---- Step 2: Application/submission acknowledgments (EC-1, EC-5) ----
+    
+    # ---- Step 1: Application/submission acknowledgments (EC-1, EC-5) ----
     if _contains_any(full_text, ACKNOWLEDGMENT_KEYWORDS):
         logger.info(f"Email {email.id} → INTERNSHIP acknowledgment (no reply, store memory later)")
         return ClassifiedEmail(
@@ -96,6 +86,18 @@ def classify_email(email: CanonicalEmail) -> ClassifiedEmail:
             confidence=1.0,
             reason="Automated acknowledgment detected — no reply needed."
         )
+
+    # ---- Step 2: Automated / no-reply sources (EC-1, EC-2) ----
+        if _contains_any(sender_email, NO_REPLY_SENDER_PATTERNS) or _contains_any(full_text, NEWSLETTER_KEYWORDS):
+            logger.info(f"Email {email.id} → NEWSLETTER/PROMOTION (no reply)")
+            return ClassifiedEmail(
+                email=email,
+                category=EmailCategory.NEWSLETTER,
+                reply_required=False,
+                confidence=1.0,
+                reason="Sender pattern or content matches newsletter/automated source."
+            )
+    
 
     # ---- Step 3: Ambiguous emails (EC-4) ----
     if _contains_any(full_text, AMBIGUOUS_PHRASES):
