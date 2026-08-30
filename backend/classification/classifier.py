@@ -88,7 +88,7 @@ def classify_email(email: CanonicalEmail) -> ClassifiedEmail:
         )
 
     # ---- Step 2: Automated / no-reply sources (EC-1, EC-2) ----
-        if _contains_any(sender_email, NO_REPLY_SENDER_PATTERNS) or _contains_any(full_text, NEWSLETTER_KEYWORDS):
+    if _contains_any(sender_email, NO_REPLY_SENDER_PATTERNS) or _contains_any(full_text, NEWSLETTER_KEYWORDS):
             logger.info(f"Email {email.id} → NEWSLETTER/PROMOTION (no reply)")
             return ClassifiedEmail(
                 email=email,
