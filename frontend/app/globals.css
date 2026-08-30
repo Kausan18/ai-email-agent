@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #0E1116;
+  --color-surface: #161A21;
+  --color-surfaceHover: #1C212B;
+  --color-border: #262B33;
+  --color-text: #E6E8EB;
+  --color-textMuted: #8B93A1;
+  --color-accent: #6C8EF5;
+  --color-accentMuted: #3B4A73;
+
+  --color-category-recruiter: #E5A155;
+  --color-category-internship: #D98E73;
+  --color-category-meeting: #6C8EF5;
+  --color-category-professor: #7FB77E;
+  --color-category-conference: #C792EA;
+  --color-category-reminder: #D9C25A;
+  --color-category-personal: #9AA5B1;
+  --color-category-newsletter: #4B5563;
+  --color-category-promotion: #4B5563;
+  --color-category-unknown: #E0685F;
+
+  --color-confidence-high: #7FB77E;
+  --color-confidence-mid: #D9C25A;
+  --color-confidence-low: #E0685F;
+
+  --font-sans: var(--font-inter), sans-serif;
+  --font-mono: var(--font-jbmono), monospace;
+}
+
+body {
+  @apply bg-bg text-text;
+}
+
+::selection {
+  @apply bg-accentMuted text-text;
+}
