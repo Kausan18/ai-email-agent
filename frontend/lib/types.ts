@@ -10,6 +10,7 @@ export interface CanonicalEmail {
   recipients: string[];
   subject: string;
   body: string;
+  body_html?: string | null;
   timestamp: string;
   is_reply: boolean;
 }

@@ -44,12 +44,18 @@ class Settings(BaseSettings):
     # --- Gmail API ---
     # These are populated from .env after OAuth setup.
     # Left empty for now — used in the Gmail wiring step at end of V1.
-    GMAIL_CREDENTIALS_PATH: str = ""
-    GMAIL_TOKEN_PATH:        str = ""
+    GMAIL_CREDENTIALS_PATH: str = str(BASE_DIR / "credentials.json")
+    GMAIL_TOKEN_PATH:        str = str(BASE_DIR / "token.json")
     GMAIL_SCOPES:            list[str] = [
         "https://www.googleapis.com/auth/gmail.readonly",
         "https://www.googleapis.com/auth/gmail.send"
     ]
+
+     # --- Gmail toggle ---
+    # V1 defaults to mock data for safety — flipping this requires a
+    # real credentials.json and completed OAuth flow (see gmail_client.py).
+    USE_GMAIL:      bool = False
+    GMAIL_MAX_RESULTS: int = 10
 
     # --- Confidence Thresholds ---
     # V1: rule-based classifier uses these to decide confidence level.

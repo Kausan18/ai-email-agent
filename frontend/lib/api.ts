@@ -2,11 +2,9 @@ import { EmailDetail, InboxSummary, ApprovalAction, ApprovalResponse } from "./t
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-// no-store: this dashboard reflects live backend state (drafts generated
-// on-demand, in-memory approval log) — caching would show stale data
-// after every approve/edit/reject action.
-export async function getInbox(): Promise<InboxSummary[]> {
-  const res = await fetch(`${API_URL}/api/inbox`, { cache: "no-store" });
+export async function getInbox(needsReply?: boolean): Promise<InboxSummary[]> {
+  const query = needsReply !== undefined ? `?needs_reply=${needsReply}` : "";
+  const res = await fetch(`${API_URL}/api/inbox${query}`, { cache: "no-store" });
   if (!res.ok) throw new Error(`Failed to load inbox (${res.status})`);
   return res.json();
 }
