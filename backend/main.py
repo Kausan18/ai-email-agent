@@ -1,3 +1,4 @@
+from backend.inference.ollama_client import warm_up
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -6,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.config import settings
 from backend.review.approval_router import router as review_router
 from backend.utils.logger import get_logger
+
 
 logger = get_logger(__name__)
 
@@ -26,6 +28,7 @@ logger = get_logger(__name__)
 async def lifespan(app: FastAPI):
     logger.info(f"{settings.APP_NAME} v{settings.APP_VERSION} starting up...")
     logger.info(f"Ollama target: {settings.OLLAMA_BASE_URL} (model={settings.OLLAMA_MODEL})")
+    warm_up()
     yield
     logger.info(f"{settings.APP_NAME} shutting down.")
 
@@ -58,6 +61,7 @@ app.add_middleware(
 )
 
 
+
 # ---------------------------------------------------------------------------
 # Routers
 # ---------------------------------------------------------------------------
@@ -79,3 +83,4 @@ def root():
 @app.get("/health")
 def health():
     return {"status": "ok"}
+

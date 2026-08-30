@@ -53,16 +53,13 @@ def _build_reply_subject(original_subject: str) -> str:
 
 
 def _call_ollama(prompt: str) -> tuple[str, float]:
-    """
-    Sends prompt to the local Ollama server and returns (response_text, latency_ms).
-    Raises OllamaClientError on any failure — network, timeout, or malformed response.
-    """
     url = f"{settings.OLLAMA_BASE_URL}/api/generate"
 
     payload = {
         "model": settings.OLLAMA_MODEL,
         "prompt": prompt,
         "stream": False,
+ # keep model resident between clicks during a review session
         "options": {
             "temperature": settings.TEMPERATURE,
             "num_predict": settings.MAX_TOKENS,
@@ -71,7 +68,7 @@ def _call_ollama(prompt: str) -> tuple[str, float]:
 
     start = time.perf_counter()
     try:
-        response = requests.post(url, json=payload, timeout=120)
+        response = requests.post(url, json=payload, timeout=300)  # was 120 — cold load can exceed this on partial GPU offload
         response.raise_for_status()
     except RequestException as e:
         logger.error(f"Ollama request failed: {e}")
@@ -88,7 +85,6 @@ def _call_ollama(prompt: str) -> tuple[str, float]:
         raise OllamaClientError("Ollama response missing 'response' field.")
 
     return reply_text.strip(), latency_ms
-
 
 def generate_reply(classified: ClassifiedEmail) -> DraftReply:
     """
@@ -118,3 +114,16 @@ def generate_reply(classified: ClassifiedEmail) -> DraftReply:
 
     logger.info(f"Email {email.id}: draft generated in {latency_ms:.0f}ms")
     return draft
+
+def warm_up() -> None:
+    """
+    Sends a trivial prompt to Ollama once at server startup so the model
+    is already loaded into memory before the first real request. Without
+    this, whichever email you open first pays the full cold-load latency —
+    which is exactly what caused the 503 you saw.
+    """
+    try:
+        _call_ollama("Reply with OK.")
+        logger.info("Ollama warm-up complete — model loaded into memory.")
+    except OllamaClientError as e:
+        logger.warning(f"Ollama warm-up failed, will retry lazily on first request: {e}")

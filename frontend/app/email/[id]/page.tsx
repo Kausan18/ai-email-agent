@@ -28,7 +28,16 @@ export default async function EmailDetailPage({
           {email.sender.name ?? email.sender.email} &lt;{email.sender.email}&gt;
         </p>
 
-        <div className="whitespace-pre-wrap text-sm leading-relaxed text-text/90">{email.body}</div>
+        <div className="whitespace-pre-wrap text-sm leading-relaxed text-text/90">{email.body_html ? (
+  <iframe
+    srcDoc={email.body_html}
+    sandbox=""
+    className="h-125 w-full rounded-md border border-border bg-white"
+    title={`email-body-${email.id}`}
+  />
+) : (
+  <div className="whitespace-pre-wrap text-sm leading-relaxed text-text/90">{email.body}</div>
+)}</div>
       </div>
 
       {/* Draft panel */}

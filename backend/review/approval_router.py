@@ -1,13 +1,14 @@
 import json
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
-from backend.config import MOCK_DATA_PATH
+from backend.config import settings, MOCK_DATA_PATH
 from backend.models.email import CanonicalEmail, ClassifiedEmail
 from backend.models.reply import DraftReply, ApprovalRequest, ApprovalResponse, ApprovalAction
 from backend.classification.classifier import classify_email
 from backend.inference.ollama_client import generate_reply, OllamaClientError
+from backend.ingestion.gmail_client import fetch_recent_emails, send_reply, GmailClientError
 from backend.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -18,29 +19,12 @@ router = APIRouter(prefix="/api", tags=["review"])
 # ---------------------------------------------------------------------------
 # In-memory stores — V1 only.
 # ---------------------------------------------------------------------------
-# No Supabase yet (that's V2). The whole "inbox" is just the mock dataset,
-# classified once at first access and cached in these dicts for the life
-# of the server process. Restarting the server wipes drafts and decisions —
-# fine for V1, since the point is to validate the pipeline shape, not
-# persist state.
-#
-# _INBOX        — email_id -> ClassifiedEmail (loaded once from mock JSON)
-# _DRAFTS       — email_id -> DraftReply (generated lazily, on first view)
-# _FEEDBACK_LOG — append-only list of every approve/edit/reject decision.
-#                 Not wired to anything yet, but this is exactly the shape
-#                 V2/V3's feedback pipeline needs, so we start logging now.
-# ---------------------------------------------------------------------------
-
 _INBOX: dict[str, ClassifiedEmail] = {}
 _DRAFTS: dict[str, DraftReply] = {}
 _FEEDBACK_LOG: list[dict] = []
 
 
 def _load_mock_inbox() -> None:
-    """Loads emails.json, converts each to CanonicalEmail, classifies once,
-    and caches the result. Called lazily on first request, not at import
-    time — keeps this module side-effect-free until the app actually runs.
-    """
     with open(MOCK_DATA_PATH, "r", encoding="utf-8") as f:
         raw_emails = json.load(f)
 
@@ -55,37 +39,57 @@ def _load_mock_inbox() -> None:
 
 
 def _ensure_loaded() -> None:
-    if not _INBOX:
+    if _INBOX:
+        return
+
+    if settings.USE_GMAIL:
+        try:
+            emails = fetch_recent_emails()
+            for email in emails:
+                _INBOX[email.id] = classify_email(email)
+        except GmailClientError as e:
+            logger.error(f"Gmail fetch failed, falling back to mock data: {e}")
+            _load_mock_inbox()
+    else:
         _load_mock_inbox()
 
 
 def _send_via_gmail_stub(draft: DraftReply) -> bool:
-    """
-    Placeholder for the real Gmail send call, which lands in
-    ingestion/gmail_client.py (final V1 module). Until then, approving
-    a draft records the decision but never actually sends anything —
-    this matches the PRD's "system never automatically sends emails in
-    Version 1" principle, and keeps this router's contract stable: when
-    gmail_client.py exists, only this function's body changes.
-    """
-    logger.info(f"[MOCK SEND] Would send email {draft.email_id} via Gmail (not yet wired).")
-    return False
+    if not settings.USE_GMAIL:
+        logger.info(f"[MOCK SEND] Would send email {draft.email_id} via Gmail (USE_GMAIL=False).")
+        return False
+
+    classified = _INBOX.get(draft.email_id)
+    if classified is None:
+        logger.error(f"Cannot send {draft.email_id}: not found in inbox cache.")
+        return False
+
+    return send_reply(draft, to_email=classified.email.sender.email, thread_id=classified.email.thread_id)
 
 
 # ---------------------------------------------------------------------------
 # GET /api/inbox
 # ---------------------------------------------------------------------------
 @router.get("/inbox")
-def get_inbox():
+def get_inbox(
+    needs_reply: bool | None = Query(
+        None, description="Filter by reply_required. Omit to return everything."
+    )
+):
     """
-    Lightweight summary list for the /inbox dashboard page.
-    Deliberately excludes body + draft (fetched via GET /email/{id})
-    so this stays fast even once real Gmail data is wired in.
+    Lightweight summary list. `needs_reply=true` returns only emails the
+    agent decided require a reply (drafts generated or pending) — the
+    dashboard's main Inbox view. `needs_reply=false` returns everything
+    filed automatically (newsletters, acknowledgments, promotions per
+    EC-1/EC-2) — the "Filed" sidebar view. Omitting the param returns both.
     """
     _ensure_loaded()
 
     summaries = []
     for classified in _INBOX.values():
+        if needs_reply is not None and classified.reply_required != needs_reply:
+            continue
+
         email = classified.email
         summaries.append({
             "id": email.id,
@@ -108,14 +112,6 @@ def get_inbox():
 # ---------------------------------------------------------------------------
 @router.get("/email/{email_id}")
 def get_email_detail(email_id: str):
-    """
-    Full detail view for /email/:id.
-
-    If a reply is required and no draft exists yet, generates one
-    synchronously via Ollama on this request. V1 has no background job
-    queue, so the first person to open an email pays the generation
-    latency — acceptable for a single-user local dashboard.
-    """
     _ensure_loaded()
 
     classified = _INBOX.get(email_id)
@@ -147,15 +143,6 @@ def get_email_detail(email_id: str):
 # ---------------------------------------------------------------------------
 @router.post("/review/approve", response_model=ApprovalResponse)
 def approve_draft(request: ApprovalRequest):
-    """
-    Handles the user's decision on a draft: approve, edit, or reject.
-
-    Every decision — including the full before/after text on edits — is
-    appended to _FEEDBACK_LOG. Nothing consumes this yet, but this is
-    exactly the record shape V2/V3's feedback pipeline (see PRD "Feedback
-    Pipeline" section) needs, so we start capturing it from V1 onward
-    rather than losing this data and back-filling later.
-    """
     _ensure_loaded()
 
     if request.email_id not in _INBOX:

@@ -74,6 +74,7 @@ class CanonicalEmail(BaseModel):
     recipients:   list[str]            = Field(default_factory=list)
     subject:      str
     body:         str
+    body_html:    Optional[str]        = None
     timestamp:    datetime
     is_reply:     bool                 = False
     raw_headers:  Optional[dict]       = None   # Only populated from Gmail
