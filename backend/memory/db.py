@@ -36,7 +36,12 @@ def get_company_by_name(name: str) -> dict | None:
 
 # ── Contacts ───────────────────────────────────────────────────────────────
 
-def upsert_contact(email: str, name: str | None = None, company_id: str | None = None) -> dict:
+def upsert_contact(
+    email: str,
+    name: str | None = None,
+    company_id: str | None = None,
+    relationship_type: str = "unknown",   # ← add this
+) -> dict:
     client = _client()
     existing = client.table("contacts").select("*").eq("email", email).execute()
     if existing.data:
@@ -45,6 +50,7 @@ def upsert_contact(email: str, name: str | None = None, company_id: str | None =
         "email": email,
         "name": name,
         "company_id": company_id,
+        "relationship_type": relationship_type,   # ← and this
     }).execute()
     return result.data[0]
 
@@ -201,3 +207,47 @@ def get_planner_log(email_id: str) -> dict | None:
         .execute()
     )
     return result.data[0] if result.data else None
+
+# ── Email Notes (unstructured context) ────────────────────────────────────
+
+def insert_email_note(
+    contact_id: str | None,
+    thread_id: str | None,
+    category: str,
+    summary: str,
+    raw_context: str | None = None,
+    email_date: str | None = None,
+) -> dict:
+    result = _client().table("email_notes").insert({
+        "contact_id": contact_id,
+        "thread_id": thread_id,
+        "category": category,
+        "summary": summary,
+        "raw_context": raw_context,
+        "email_date": email_date,
+    }).execute()
+    return result.data[0]
+
+
+def get_notes_by_contact(contact_id: str) -> list[dict]:
+    result = (
+        _client()
+        .table("email_notes")
+        .select("*")
+        .eq("contact_id", contact_id)
+        .order("created_at", desc=True)
+        .execute()
+    )
+    return result.data
+
+
+def get_notes_by_thread(thread_id: str) -> list[dict]:
+    result = (
+        _client()
+        .table("email_notes")
+        .select("*")
+        .eq("thread_id", thread_id)
+        .order("created_at", desc=True)
+        .execute()
+    )
+    return result.data

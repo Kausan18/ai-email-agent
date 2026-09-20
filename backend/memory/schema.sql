@@ -96,3 +96,29 @@ CREATE INDEX IF NOT EXISTS idx_applications_status   ON applications(status);
 CREATE INDEX IF NOT EXISTS idx_recruiters_company    ON recruiters(company_id);
 CREATE INDEX IF NOT EXISTS idx_entity_aliases_alias  ON entity_aliases(alias);
 CREATE INDEX IF NOT EXISTS idx_planner_logs_email    ON planner_logs(email_id);
+
+
+-- Additions to the database
+
+-- Add relationship type to existing contacts table
+ALTER TABLE contacts
+ADD COLUMN IF NOT EXISTS relationship_type TEXT DEFAULT 'unknown'
+CHECK (relationship_type IN (
+    'recruiter', 'professor', 'colleague',
+    'friend', 'conference_organizer', 'unknown'
+));
+
+-- New table for unstructured email context
+CREATE TABLE IF NOT EXISTS email_notes (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    contact_id   UUID REFERENCES contacts(id),
+    thread_id    TEXT,
+    category     TEXT,
+    summary      TEXT,
+    raw_context  TEXT,
+    email_date   TIMESTAMPTZ,
+    created_at   TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_email_notes_contact  ON email_notes(contact_id);
+CREATE INDEX IF NOT EXISTS idx_email_notes_thread   ON email_notes(thread_id);
