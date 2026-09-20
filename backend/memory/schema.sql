@@ -122,3 +122,37 @@ CREATE TABLE IF NOT EXISTS email_notes (
 
 CREATE INDEX IF NOT EXISTS idx_email_notes_contact  ON email_notes(contact_id);
 CREATE INDEX IF NOT EXISTS idx_email_notes_thread   ON email_notes(thread_id);
+
+CREATE TABLE IF NOT EXISTS conference_submissions (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    conference_name TEXT NOT NULL,
+    paper_title     TEXT,
+    submission_id   TEXT,
+    status          TEXT NOT NULL DEFAULT 'submitted'
+                    CHECK (status IN ('submitted', 'under_review', 'accepted', 'rejected', 'withdrawn')),
+    submission_date TIMESTAMPTZ,
+    decision_date   TIMESTAMPTZ,
+    created_at      TIMESTAMPTZ DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE recruiters
+ADD COLUMN IF NOT EXISTS application_id UUID REFERENCES applications(id);
+
+CREATE TABLE IF NOT EXISTS unverified_events (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email_id     TEXT NOT NULL,
+    event_type   TEXT NOT NULL,  -- 'application', 'conference', 'meeting'
+    raw_data     JSONB NOT NULL,
+    reason       TEXT,           -- why it couldn't be verified
+    created_at   TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS flagged_emails (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email_id     TEXT NOT NULL,
+    reason       TEXT NOT NULL,  -- 'phishing', 'suspicious_link', 'unknown_sender', etc.
+    sender       TEXT,
+    flagged_at   TIMESTAMPTZ DEFAULT NOW(),
+    reviewed     BOOLEAN DEFAULT FALSE
+);

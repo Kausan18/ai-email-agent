@@ -251,3 +251,123 @@ def get_notes_by_thread(thread_id: str) -> list[dict]:
         .execute()
     )
     return result.data
+
+# ── Conference Submissions ─────────────────────────────────────────────────
+
+def insert_conference_submission(
+    conference_name: str,
+    paper_title: str | None = None,
+    submission_id: str | None = None,
+    status: str = "submitted",
+    submission_date: str | None = None,
+) -> dict:
+    result = _client().table("conference_submissions").insert({
+        "conference_name": conference_name,
+        "paper_title": paper_title,
+        "submission_id": submission_id,
+        "status": status,
+        "submission_date": submission_date,
+    }).execute()
+    return result.data[0]
+
+
+def update_conference_status(submission_id_pk: str, new_status: str) -> dict:
+    result = (
+        _client()
+        .table("conference_submissions")
+        .update({"status": new_status, "updated_at": "NOW()"})
+        .eq("id", submission_id_pk)
+        .execute()
+    )
+    return result.data[0]
+
+
+def get_conference_by_name(conference_name: str) -> dict | None:
+    result = (
+        _client()
+        .table("conference_submissions")
+        .select("*")
+        .eq("conference_name", conference_name)
+        .execute()
+    )
+    return result.data[0] if result.data else None
+
+
+def get_active_conference_submissions() -> list[dict]:
+    result = (
+        _client()
+        .table("conference_submissions")
+        .select("*")
+        .not_.in_("status", ["rejected", "withdrawn"])
+        .execute()
+    )
+    return result.data
+
+
+# ── Unverified Events ──────────────────────────────────────────────────────
+
+def insert_unverified_event(
+    email_id: str,
+    event_type: str,
+    raw_data: dict,
+    reason: str | None = None,
+) -> dict:
+    result = _client().table("unverified_events").insert({
+        "email_id": email_id,
+        "event_type": event_type,
+        "raw_data": raw_data,
+        "reason": reason,
+    }).execute()
+    return result.data[0]
+
+
+def get_unverified_events(event_type: str | None = None) -> list[dict]:
+    client = _client()
+    query = client.table("unverified_events").select("*")
+    if event_type:
+        query = query.eq("event_type", event_type)
+    result = query.order("created_at", desc=True).execute()
+    return result.data
+
+
+def resolve_unverified_event(event_id: str) -> None:
+    """Remove an unverified event once the user has confirmed or dismissed it."""
+    _client().table("unverified_events").delete().eq("id", event_id).execute()
+
+
+# ── Flagged Emails ─────────────────────────────────────────────────────────
+
+def flag_email(
+    email_id: str,
+    reason: str,
+    sender: str | None = None,
+) -> dict:
+    result = _client().table("flagged_emails").insert({
+        "email_id": email_id,
+        "reason": reason,
+        "sender": sender,
+    }).execute()
+    return result.data[0]
+
+
+def get_flagged_emails(reviewed: bool = False) -> list[dict]:
+    result = (
+        _client()
+        .table("flagged_emails")
+        .select("*")
+        .eq("reviewed", reviewed)
+        .order("flagged_at", desc=True)
+        .execute()
+    )
+    return result.data
+
+
+def mark_flag_reviewed(flag_id: str) -> dict:
+    result = (
+        _client()
+        .table("flagged_emails")
+        .update({"reviewed": True})
+        .eq("id", flag_id)
+        .execute()
+    )
+    return result.data[0]
