@@ -57,6 +57,10 @@ class Settings(BaseSettings):
     USE_GMAIL:      bool = False
     GMAIL_MAX_RESULTS: int = 10
 
+    # Supabase settings (for V2)
+    SUPABASE_URL: str = ""
+    SUPABASE_KEY: str = ""
+
     # --- Confidence Thresholds ---
     # V1: rule-based classifier uses these to decide confidence level.
     # V3: confidence engine will refine these dynamically.
