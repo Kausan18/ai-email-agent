@@ -87,5 +87,61 @@
     "timestamp": "2025-07-23T16:00:00Z",
     "is_reply": false,
     "raw_headers": null
+  },
+
+  {
+  "id": "mock_007",
+  "thread_id": "thread_001",
+  "sender": { "name": "Sarah Mitchell", "email": "sarah.mitchell@techcorp.io" },
+  "subject": "Re: Exciting SWE Internship Opportunity at TechCorp",
+  "body": "Hi,\n\nJust following up on my previous message. Are you still available for a call this week? We'd love to connect.\n\nBest,\nSarah Mitchell\nTechnical Recruiter, TechCorp",
+  "timestamp": "2025-07-24T10:00:00Z",
+  "is_reply": true,
+  "raw_headers": null
+  },
+
+  {
+  "id": "mock_008",
+  "thread_id": "thread_005",
+  "sender": { "name": "Analytics Hub HR", "email": "hr@analyticshub.com" },
+  "subject": "Application Update – Data Science Intern at Analytics Hub",
+  "body": "Hi,\n\nThank you for applying to the Data Science Intern role at Analytics Hub.\n\nWe have reviewed your application and would like to invite you for an initial screening call.\n\nPlease let us know your availability for a 30-minute call this week.\n\nRegards,\nHR Team\nAnalytics Hub",
+  "timestamp": "2025-07-26T10:00:00Z",
+  "is_reply": false,
+  "raw_headers": null
+  },
+
+  {
+  "id": "mock_009",
+  "thread_id": "thread_009",
+  "sender": { "name": "Careers Team", "email": "careers@analyticshub.in" },
+  "subject": "Interview Invitation – Analytics Hub Pvt Ltd",
+  "body": "Hi,\n\nWe are reaching out from Analytics Hub Pvt Ltd regarding your application for the Data Science Intern position.\n\nWe would like to schedule a technical interview. Please share your availability for next week.\n\nBest regards,\nCareers Team\nAnalytics Hub Pvt Ltd",
+  "timestamp": "2025-07-27T09:00:00Z",
+  "is_reply": false,
+  "raw_headers": null
+  },
+
+  {
+  "id": "mock_010",
+  "thread_id": "thread_010",
+  "sender": { "name": "ICML 2025 Organizing Committee", "email": "submissions@icml.cc" },
+  "subject": "Congratulations — Your Paper Has Been Accepted to ICML 2025",
+  "body": "Dear Author,\n\nWe are pleased to inform you that your paper submitted to ICML 2025 has been accepted.\n\nPlease complete your camera-ready submission by August 15, 2025.\n\nLooking forward to seeing you at the conference.\n\nBest regards,\nICML 2025 Program Committee",
+  "timestamp": "2025-07-28T08:00:00Z",
+  "is_reply": false,
+  "raw_headers": null
+  },
+
+  {
+  "id": "mock_011",
+  "thread_id": "thread_011",
+  "sender": { "name": "Internshala Applications", "email": "no-reply@internshala.com" },
+  "subject": "Application Received – ML Engineer Intern at TechCorp",
+  "body": "Hi,\n\nThank you for applying to the ML Engineer Intern position at TechCorp through Internshala.\n\nYour application has been successfully submitted.\n\nApplication Details:\n- Company: TechCorp\n- Role: ML Engineer Intern\n- Application ID: INS-2025-991034\n- Applied On: July 28, 2025\n- Platform: Internshala\n\nGood luck!\nTeam Internshala",
+  "timestamp": "2025-07-28T12:00:00Z",
+  "is_reply": false,
+  "raw_headers": null
   }
 ]
+

@@ -6,6 +6,7 @@ Phase 1 verification — run with:
 """
 
 from backend.memory.db import (
+    _client,
     upsert_company,
     get_company_by_name,
     upsert_contact,
@@ -34,48 +35,77 @@ from backend.memory.db import (
     get_notes_by_thread,
 )
 
+def _cleanup():
+    """Delete all test fixture data in FK-safe order (children before parents)."""
+    client = _client()
+    # Children first
+    client.table("recruiters").delete().eq("thread_id", "thread_abc_001").execute()
+    client.table("applications").delete().eq("application_id", "INS-2026-001").execute()
+    client.table("conference_submissions").delete().eq("conference_name", "NITTE IEEE 2026").execute()
+    client.table("unverified_events").delete().eq("email_id", "email_unknown_conf_001").execute()
+    client.table("flagged_emails").delete().eq("email_id", "email_phish_001").execute()
+    client.table("email_notes").delete().eq("thread_id", "thread_prof_001").execute()
+    client.table("email_notes").delete().eq("thread_id", "thread_colleague_001").execute()
+    client.table("email_notes").delete().eq("thread_id", "thread_friend_001").execute()
+    client.table("email_notes").delete().eq("thread_id", "thread_unknown_001").execute()
+    client.table("entity_aliases").delete().eq("alias", "ABC Tech").execute()
+    client.table("planner_logs").delete().eq("email_id", "email_test_001").execute()
+    # Contacts (references companies)
+    for email in [
+        "john@abc.ai",
+        "prof.sharma@university.edu",
+        "teammate@internship.com",
+        "teammate2@internship.com",
+        "friend@gmail.com",
+        "organizer@ieee.org",
+        "someone@unknown.com",
+    ]:
+        client.table("contacts").delete().eq("email", email).execute()
+    # Parent last
+    client.table("companies").delete().eq("name", "ABC Technologies").execute()
+
 def test_company():
-    company = upsert_company("ABC Technologies", domain="abc.ai")
+    company = upsert_company({"name": "ABC Technologies", "domain": "abc.ai"})
     assert company["name"] == "ABC Technologies"
     fetched = get_company_by_name("ABC Technologies")
     assert fetched["id"] == company["id"]
     # Upsert again — should not duplicate
-    same = upsert_company("ABC Technologies")
+    same = upsert_company({"name": "ABC Technologies"})
     assert same["id"] == company["id"]
     print("✅ company: PASS")
     return company
 
 def test_contact(company):
-    contact = upsert_contact("john@abc.ai", name="John Smith", company_id=company["id"])
+    contact = upsert_contact({"email": "john@abc.ai", "name": "John Smith", "company_id": company["id"]})
     assert contact["email"] == "john@abc.ai"
     fetched = get_contact_by_email("john@abc.ai")
     assert fetched["id"] == contact["id"]
     # Upsert again — should not duplicate
-    same = upsert_contact("john@abc.ai")
+    same = upsert_contact({"email": "john@abc.ai"})
     assert same["id"] == contact["id"]
     print("✅ contact: PASS")
     return contact
 
 def test_recruiter(contact, company):
-    recruiter = upsert_recruiter(
-        contact_id=contact["id"],
-        company_id=company["id"],
-        thread_id="thread_abc_001"
-    )
+    recruiter = upsert_recruiter({
+    "contact_id": contact["id"],
+    "company_id": company["id"],
+    "thread_id": "thread_abc_001",
+})
     assert recruiter["contact_id"] == contact["id"]
     fetched = get_recruiter_by_contact(contact["id"])
     assert fetched["id"] == recruiter["id"]
     print("✅ recruiter: PASS")
 
 def test_application(company):
-    app = insert_application(
-        company_id=company["id"],
-        role="Software Engineering Intern",
-        status="applied",
-        platform="Internshala",
-        application_id="INS-2026-001",
-        application_date="2026-09-01T00:00:00Z",
-    )
+    app = insert_application({
+    "company_id": company["id"],
+    "role": "Software Engineering Intern",
+    "status": "applied",
+    "platform": "Internshala",
+    "application_id": "INS-2026-001",
+    "application_date": "2026-09-01T00:00:00Z",
+})
     assert app["role"] == "Software Engineering Intern"
     apps = get_applications_by_company(company["id"])
     assert any(a["id"] == app["id"] for a in apps)
@@ -113,40 +143,30 @@ def test_planner_log():
 
 def test_contact_relationship_type(company):
     # Test each relationship type stores correctly
-    professor = upsert_contact(
-        email="prof.sharma@university.edu",
-        name="Prof. Sharma",
-        company_id=company["id"],
-        relationship_type="professor",
-    )
+    professor = upsert_contact({"email": "prof.sharma@university.edu", 
+                                "name": "Prof. Sharma", 
+                                "company_id": company["id"], 
+                                "relationship_type": "professor"})
     assert professor["relationship_type"] == "professor"
 
-    colleague = upsert_contact(
-        email="teammate@internship.com",
-        name="Alex",
-        relationship_type="colleague",
-    )
+    colleague = upsert_contact({"email": "teammate@internship.com", 
+                                "name": "Alex", 
+                                "relationship_type": "colleague"})
     assert colleague["relationship_type"] == "colleague"
 
-    friend = upsert_contact(
-        email="friend@gmail.com",
-        name="Rahul",
-        relationship_type="friend",
-    )
+    friend = upsert_contact({"email": "friend@gmail.com", 
+                             "name": "Rahul", 
+                             "relationship_type": "friend"})
     assert friend["relationship_type"] == "friend"
 
-    conf_organizer = upsert_contact(
-        email="organizer@ieee.org",
-        name="IEEE Organizer",
-        relationship_type="conference_organizer",
-    )
+    conf_organizer = upsert_contact({"email": "organizer@ieee.org", 
+                                     "name": "IEEE Organizer", 
+                                     "relationship_type": "conference_organizer"})
     assert conf_organizer["relationship_type"] == "conference_organizer"
 
     # Unknown defaults correctly
-    unknown = upsert_contact(
-        email="someone@unknown.com",
-        name="Unknown Person",
-    )
+    unknown = upsert_contact({"email": "someone@unknown.com", 
+                              "name": "Unknown Person"})
     assert unknown["relationship_type"] == "unknown"
 
     print("✅ contact_relationship_type: PASS")
@@ -155,14 +175,14 @@ def test_contact_relationship_type(company):
 
 def test_email_notes(professor, company):
     # Store a note about a professor email
-    note = insert_email_note(
-        contact_id=professor["id"],
-        thread_id="thread_prof_001",
-        category="professor",
-        summary="Prof. Sharma asked for a project update on the aneurysm ML pipeline.",
-        raw_context="Deadline mentioned: Oct 15. Wants a progress report PDF.",
-        email_date="2026-09-20T10:00:00Z",
-    )
+    note = insert_email_note({
+        "contact_id": professor["id"],
+        "thread_id": "thread_prof_001",
+        "category": "professor",
+        "summary": "Prof. Sharma asked for a project update on the aneurysm ML pipeline.",
+        "raw_context": "Deadline mentioned: Oct 15. Wants a progress report PDF.",
+        "email_date": "2026-09-20T10:00:00Z",
+    })
     assert note["category"] == "professor"
     assert note["contact_id"] == professor["id"]
 
@@ -175,54 +195,52 @@ def test_email_notes(professor, company):
     assert any(n["id"] == note["id"] for n in by_thread)
 
     # Store a colleague note — no company link needed
-    colleague = upsert_contact(
-        email="teammate2@internship.com",
-        name="Priya",
-        relationship_type="colleague",
-    )
-    colleague_note = insert_email_note(
-        contact_id=colleague["id"],
-        thread_id="thread_colleague_001",
-        category="colleague",
-        summary="Priya sent an update on the frontend task she was handling.",
-        raw_context="Task: dashboard component. ETA: Thursday.",
-        email_date="2026-09-21T09:00:00Z",
-    )
+    colleague = upsert_contact({
+        "email": "teammate2@internship.com",
+        "name": "Priya",
+        "relationship_type": "colleague",
+    })
+    colleague_note = insert_email_note({
+        "contact_id": colleague["id"],
+        "thread_id": "thread_colleague_001",
+        "category": "colleague",
+        "summary": "Priya sent an update on the frontend task she was handling.",
+        "raw_context": "Task: dashboard component. ETA: Thursday.",
+        "email_date": "2026-09-21T09:00:00Z",
+    })
     assert colleague_note["category"] == "colleague"
 
     # Store a friend note
     friend = get_contact_by_email("friend@gmail.com")
-    friend_note = insert_email_note(
-        contact_id=friend["id"],
-        thread_id="thread_friend_001",
-        category="friend",
-        summary="Rahul asking for help with his ML assignment.",
-        raw_context="Topic: linear regression. Wants to meet this weekend.",
-        email_date="2026-09-21T11:00:00Z",
-    )
+    friend_note = insert_email_note({
+        "contact_id": friend["id"],
+        "thread_id": "thread_friend_001",
+        "category": "friend",
+        "summary": "Rahul asking for help with his ML assignment.",
+        "raw_context": "Topic: linear regression. Wants to meet this weekend.",
+        "email_date": "2026-09-21T11:00:00Z",
+    })
     assert friend_note["category"] == "friend"
 
     # Note with no contact (orphan thread — sender unknown)
-    orphan_note = insert_email_note(
-        contact_id=None,
-        thread_id="thread_unknown_001",
-        category="unknown",
-        summary="Email from unrecognised sender about a workshop.",
-        raw_context=None,
-        email_date="2026-09-21T12:00:00Z",
-    )
+    orphan_note = insert_email_note({
+        "thread_id": "thread_unknown_001",
+        "category": "unknown",
+        "summary": "Email from unrecognised sender about a workshop.",
+        "email_date": "2026-09-21T12:00:00Z",
+    })
     assert orphan_note["contact_id"] is None
 
     print("✅ email_notes: PASS")
 
 def test_conference_submission():
-    submission = insert_conference_submission(
-        conference_name="NITTE IEEE 2026",
-        paper_title="Physics-Guided ML for Aneurysm Rupture Risk",
-        submission_id="IEEE-2026-0042",
-        status="submitted",
-        submission_date="2026-09-15T00:00:00Z",
-    )
+    submission = insert_conference_submission({
+        "conference_name": "NITTE IEEE 2026",
+        "paper_title": "Physics-Guided ML for Aneurysm Rupture Risk",
+        "submission_id": "IEEE-2026-0042",
+        "status": "submitted",
+        "submission_date": "2026-09-15T00:00:00Z",
+    })
     assert submission["conference_name"] == "NITTE IEEE 2026"
 
     fetched = get_conference_by_name("NITTE IEEE 2026")
@@ -238,12 +256,12 @@ def test_conference_submission():
 
 
 def test_unverified_event():
-    event = insert_unverified_event(
-        email_id="email_unknown_conf_001",
-        event_type="conference",
-        raw_data={"conference": "ICML 2026", "message": "Congratulations on your acceptance."},
-        reason="No prior submission found in memory for ICML 2026",
-    )
+    event = insert_unverified_event({
+        "email_id": "email_unknown_conf_001",
+        "event_type": "conference",
+        "raw_data": {"conference": "ICML 2026", "message": "Congratulations on your acceptance."},
+        "reason": "No prior submission found in memory for ICML 2026",
+    })
     assert event["event_type"] == "conference"
 
     all_events = get_unverified_events()
@@ -287,15 +305,17 @@ if __name__ == "__main__":
 '''
 if __name__ == "__main__":
     print("\n── Phase 1 DB Tests ──\n")
+    _cleanup()   # ← clear stale data before starting
     company = test_company()
     contact = test_contact(company)
     test_recruiter(contact, company)
     test_application(company)
     test_alias(company)
     test_planner_log()
-    professor = test_contact_relationship_type(company)   
-    test_email_notes(professor, company)                  
+    professor = test_contact_relationship_type(company)
+    test_email_notes(professor, company)
     test_conference_submission()
     test_unverified_event()
     test_flagged_email()
+    _cleanup()   # ← leave the database clean after finishing
     print("\n── All Phase 1 tests passed ✅ ──\n")
