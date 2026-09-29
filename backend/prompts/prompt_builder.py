@@ -89,3 +89,121 @@ def build_prompt(classified: ClassifiedEmail) -> str:
     )
 
     return prompt
+
+# ---------------------------------------------------------------------------
+# Prompt Builder — V2
+# ---------------------------------------------------------------------------
+# Responsibility: wrap the V1 template output with three extra blocks built
+# from PlannerDecision and RetrievedContext — context, constraints, and a
+# confidence hedge — then prepend them above the category template text.
+#
+# V2 does NOT touch template files or the V1 selection logic (low-confidence
+# -> clarification.txt, else category -> template). It reuses build_prompt()
+# as-is and wraps the string it returns.
+#
+# Failure mode: if anything in the V2 path raises, we log it and fall back
+# to plain V1 output. The pipeline must never crash on a prompt-builder bug.
+# ---------------------------------------------------------------------------
+
+from backend.planner.decision_schema import PlannerDecision
+from backend.memory.memory_reader import RetrievedContext
+
+
+def _build_context_block(retrieved_context: "RetrievedContext | None") -> str:
+    """
+    Renders retrieval_summary as a '## Context from memory' block.
+    Returns "" if there's nothing usable — no empty header, no placeholder
+    filler when nothing was retrieved (EC-21: don't invent details).
+    """
+    if retrieved_context is None:
+        return ""
+
+    summary = (retrieved_context.retrieval_summary or "").strip()
+    if not summary:
+        return ""
+
+    return f"## Context from memory\n{summary}\n"
+
+
+def _build_constraints_block(planner_decision: "PlannerDecision | None") -> str:
+    """
+    Renders planner_decision.constraints verbatim as a bullet list.
+    These strings are the hallucination guard — never paraphrase them.
+    Returns "" if there are no constraints.
+    """
+    if planner_decision is None or not planner_decision.constraints:
+        return ""
+
+    bullets = "\n".join(f"- {c}" for c in planner_decision.constraints)
+    return f"## Constraints\n{bullets}\n"
+
+
+def _build_confidence_instruction(planner_decision: "PlannerDecision | None") -> str:
+    """
+    Returns a hedging instruction line when planner confidence is below
+    the same threshold V1 uses to route to clarification.txt. Returns ""
+    for high-confidence decisions — no instruction needed.
+    """
+    if planner_decision is None:
+        return ""
+
+    if planner_decision.confidence < settings.LOW_CONFIDENCE_THRESHOLD:
+        return (
+            "## Confidence note\n"
+            "Confidence in the available context is low. Hedge rather than "
+            "asserting facts you are not certain of, and avoid firm "
+            "commitments (dates, times, decisions) unless explicitly "
+            "confirmed above.\n"
+        )
+
+    return ""
+
+
+def build_prompt_v2(
+    classified: ClassifiedEmail,
+    planner_decision: PlannerDecision,
+    retrieved_context: RetrievedContext | None,
+) -> str:
+    """
+    Builds the V2 prompt: context + constraints + confidence-hedge blocks,
+    prepended above the V1 template output. Raises on failure — callers
+    should catch and fall back to build_prompt(classified) directly.
+    """
+    base_prompt = build_prompt(classified)
+
+    blocks = [
+        _build_context_block(retrieved_context),
+        _build_constraints_block(planner_decision),
+        _build_confidence_instruction(planner_decision),
+    ]
+    prefix = "\n".join(b for b in blocks if b)
+
+    if not prefix:
+        return base_prompt
+
+    return f"{prefix}\n{base_prompt}"
+
+
+def build_prompt_safe(
+    classified: ClassifiedEmail,
+    planner_decision: PlannerDecision | None = None,
+    retrieved_context: RetrievedContext | None = None,
+) -> str:
+    """
+    Single entry point for callers going forward.
+
+    If planner_decision is provided, attempts the V2 prompt (context +
+    constraints + confidence hedge, prepended over the V1 template).
+    On any exception, logs the traceback and falls back to plain V1 output
+    via build_prompt(classified) — matches the never-silent-except pattern
+    used in memory_writer.py and planner.py.
+    """
+    if planner_decision is not None:
+        try:
+            return build_prompt_v2(classified, planner_decision, retrieved_context)
+        except Exception:
+            logger.exception(
+                f"Email {classified.email.id}: V2 prompt build failed, falling back to V1"
+            )
+
+    return build_prompt(classified)
